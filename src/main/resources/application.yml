@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cryptomoney
+    username: postgres
+    password: mypassword
+  batch:
+    jdbc:
+      initialize-schema: never
+
+app:
+  pricing:
+    update:
+      cron: 0 0 * * * ?
+  clients:
+    clients-api-config:
+      coin-cap:
+        base-url: https://rest.coincap.io/v3
+        api-key: e7fda661412921093bd2b15a52d87d2c0892cc11c309ef43ae7c1e36cd3d89d5
