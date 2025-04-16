@@ -10,7 +10,7 @@ spring:
 app:
   pricing:
     update:
-      cron: 0 0 * * * ?
+      cron: "*/10 * * * * *"
   clients:
     clients-api-config:
       coin-cap:

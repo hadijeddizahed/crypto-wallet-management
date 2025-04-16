@@ -22,7 +22,8 @@ public class UpdatePricingScheduler {
         this.assetsProcessingJob = assetsProcessingJob;
     }
 
-    @Scheduled(cron = "${pricing.update.cron:0 0 * * * ?}")
+    // @Scheduled(cron = "${app.pricing.update.cron:*/10 * * * * *}") //every 10 seconds
+    @Scheduled(cron = "0 */10 * * * *") // every 10 min
     public void runJob() throws Exception {
         JobParameters params = new JobParametersBuilder()
                 .addString("JobID", String.valueOf(System.currentTimeMillis()))
