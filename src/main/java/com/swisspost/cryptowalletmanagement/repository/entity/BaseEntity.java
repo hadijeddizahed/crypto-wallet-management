@@ -30,6 +30,10 @@ public abstract class BaseEntity {
         updatedAt = LocalDateTime.now();
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }

@@ -17,6 +17,7 @@ import java.util.List;
 public interface WalletMapper {
     WalletMapper INSTANCE = Mappers.getMapper(WalletMapper.class);
 
+    @Mapping(source = "id", target = "id")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "assetEntities", target = "assetsInfo")
     WalletResponseDTO toDto(WalletEntity wallet);
