@@ -2,10 +2,7 @@ package com.swisspost.cryptowalletmanagement.service.pricing;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.swisspost.cryptowalletmanagement.service.dto.AssetHistoricalInfo;
-import com.swisspost.cryptowalletmanagement.service.dto.AssetInfo;
 import com.swisspost.cryptowalletmanagement.service.exceptions.BusinessException;
-import com.swisspost.cryptowalletmanagement.utils.DateConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,28 +15,26 @@ import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
-import java.time.LocalDate;
 import java.util.function.Function;
 
 @Service
 @Qualifier("CoinCapPricingService")
 @RequiredArgsConstructor
 @Slf4j
-public class CoinCapPricingApiService implements PricingApiService {
+public class CoinCapService implements PricingApiService {
 
     private final WebClient coinCapWebClient;
     private final ObjectMapper objectMapper;
 
     @Override
-    public AssetInfo getHistoricalInfo(String token, LocalDate date) {
+    public JsonNode getHistoricalInfo(final String token, final String interval, final long startDate, final long endDate) {
         try {
             return coinCapWebClient.get()
-                    .uri(uriBuilder -> getHitoricalUri(token, date, uriBuilder))
+                    .uri(uriBuilder -> getHitoricalUri(token, interval,startDate,endDate, uriBuilder))
                     .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, getNoResponseBody())
                     .bodyToMono(JsonNode.class)
-                    .map(json -> convertToAssetInfo(json, token))
                     .onErrorResume(throwable -> null)
                     .block();
         } catch (Exception ex) {
@@ -50,7 +45,7 @@ public class CoinCapPricingApiService implements PricingApiService {
     }
 
     @Override
-    public AssetInfo getSingleAssetInfo(final String token) {
+    public JsonNode getSingleAssetInfo(final String token) {
         try {
             return coinCapWebClient.get()
                     .uri(uriBuilder -> uriBuilder
@@ -62,7 +57,6 @@ public class CoinCapPricingApiService implements PricingApiService {
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, getNoResponseBody())
                     .bodyToMono(JsonNode.class)
-                    .map(jsonNode -> convertToAssetInfo(jsonNode, null))
                     .onErrorResume(throwable -> null)
                     .block();
         } catch (Exception ex) {
@@ -72,36 +66,16 @@ public class CoinCapPricingApiService implements PricingApiService {
 
     }
 
-    private static URI getHitoricalUri(String token, LocalDate date, UriBuilder uriBuilder) {
+    private static URI getHitoricalUri(String token, final String interval, final long startDate, final long endDate, UriBuilder uriBuilder) {
         return uriBuilder
                 .path("/assets/")
                 .path(token)
                 .path("/history")
                 .queryParam("apiKey", "{apiKey}")
-                .queryParam("interval", "d1")
-                .queryParam("start", DateConverter.getStartEpoch(date))
-                .queryParam("end", DateConverter.getEndEpoch(date))
+                .queryParam("interval", interval)
+                .queryParam("start", startDate)
+                .queryParam("end", endDate)
                 .build();
-    }
-
-    private AssetInfo convertToAssetInfo(JsonNode json, String token) {
-        JsonNode dataNode = json.get("data");
-        AssetHistoricalInfo assetHistoricalInfo;
-        AssetInfo assetInfo;
-        if (dataNode.isArray()) {
-            if (dataNode.size() == 1) {
-                assetHistoricalInfo = objectMapper.convertValue(dataNode.get(0), AssetHistoricalInfo.class);
-                return AssetInfo.builder()
-                        .priceUsd(assetHistoricalInfo.priceUsd())
-                        .symbol(token)
-                        .build();
-            } else {
-                throw new IllegalArgumentException("Expected a single object in array, but found " + dataNode.size());
-            }
-        } else {
-            assetInfo = objectMapper.convertValue(dataNode, AssetInfo.class);
-        }
-        return assetInfo;
     }
 
     private static Function<ClientResponse, Mono<? extends Throwable>> getNoResponseBody() {

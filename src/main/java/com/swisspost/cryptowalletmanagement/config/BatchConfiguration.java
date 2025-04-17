@@ -6,6 +6,7 @@ import com.swisspost.cryptowalletmanagement.service.batch.ParallelAssetItemWrite
 import com.swisspost.cryptowalletmanagement.service.batch.ParallelBatchProcessor;
 import com.swisspost.cryptowalletmanagement.service.batch.RepositoryAssetItemReader;
 import com.swisspost.cryptowalletmanagement.service.pricing.PricingApiService;
+import com.swisspost.cryptowalletmanagement.service.pricing.PricingProviderService;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -23,13 +24,12 @@ import jakarta.persistence.EntityManagerFactory;
 public class BatchConfiguration {
 
     private final AssetRepository assetRepository;
-    private final PricingApiService pricingApiService;
+    private final PricingProviderService pricingProviderService;
 
     public BatchConfiguration(AssetRepository assetRepository,
-                              @Qualifier("CoinCapPricingService")
-                              PricingApiService pricingApiService) {
+                              PricingProviderService pricingProviderService) {
         this.assetRepository = assetRepository;
-        this.pricingApiService = pricingApiService;
+        this.pricingProviderService = pricingProviderService;
     }
 
     @Bean
@@ -39,7 +39,7 @@ public class BatchConfiguration {
 
     @Bean
     public ParallelBatchProcessor processor() {
-        return new ParallelBatchProcessor(pricingApiService);
+        return new ParallelBatchProcessor(pricingProviderService);
     }
 
     @Bean

@@ -2,7 +2,9 @@ package com.swisspost.cryptowalletmanagement.service.batch;
 
 import com.swisspost.cryptowalletmanagement.repository.entity.AssetEntity;
 import com.swisspost.cryptowalletmanagement.service.dto.AssetEnum;
+import com.swisspost.cryptowalletmanagement.service.dto.SingleAssetRequest;
 import com.swisspost.cryptowalletmanagement.service.pricing.PricingApiService;
+import com.swisspost.cryptowalletmanagement.service.pricing.PricingProviderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemProcessor;
@@ -12,10 +14,10 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class ParallelBatchProcessor implements ItemProcessor<AssetEntity, AssetEntity> {
 
-    private final PricingApiService pricingApiService;
+    private final PricingProviderService pricingProviderService;
 
-    public ParallelBatchProcessor(PricingApiService pricingApiService) {
-        this.pricingApiService = pricingApiService;
+    public ParallelBatchProcessor(PricingProviderService pricingProviderService) {
+        this.pricingProviderService = pricingProviderService;
     }
 
     @Override
@@ -30,7 +32,7 @@ public class ParallelBatchProcessor implements ItemProcessor<AssetEntity, AssetE
         int index = 0;
         for (AssetEntity item : chunk.getItems()) {
             futures[index++] = CompletableFuture.supplyAsync(() -> {
-                final var assetInfo = pricingApiService.getSingleAssetInfo(AssetEnum.findBySymbol(item.getSymbol()).getName());
+                final var assetInfo = pricingProviderService.getSingleAssetInfo(new SingleAssetRequest(AssetEnum.findBySymbol(item.getSymbol()).getName()));
                 log.info("Updated price for asset:{} is: {}", item.getSymbol(), assetInfo.priceUsd());
                 item.setPrice(assetInfo.priceUsd());
                 return item;

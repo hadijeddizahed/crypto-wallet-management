@@ -16,6 +16,7 @@ import com.swisspost.cryptowalletmanagement.service.exceptions.BusinessException
 import com.swisspost.cryptowalletmanagement.service.exceptions.DuplicateUserException;
 import com.swisspost.cryptowalletmanagement.service.mapper.WalletMapper;
 import com.swisspost.cryptowalletmanagement.service.pricing.PricingApiService;
+import com.swisspost.cryptowalletmanagement.service.pricing.PricingProviderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
@@ -36,8 +37,7 @@ public class WalletServiceImpl implements WalletService {
     private final WalletRepository walletRepository;
     private final AssetRepository assetRepository;
 
-    @Qualifier("CoinCapPricingService")
-    private final PricingApiService coinCapService;
+    private final PricingProviderService pricingProviderService;
 
     public WalletResponseDTO create(final CreateWalletRequest request) {
         Optional<UserEntity> existingUser = userRepository.findByEmail(request.getEmail());
@@ -73,15 +73,16 @@ public class WalletServiceImpl implements WalletService {
             throw new BusinessException("Wallet not found");
         }
 
-        final AssetInfo assetInfo = coinCapService.getSingleAssetInfo(AssetEnum.findBySymbol(request.getSymbol()).getName());
-        if (assetInfo == null) {
+        final SingleAssetResponse singleAssetResponse = pricingProviderService.getSingleAssetInfo(
+                new SingleAssetRequest(AssetEnum.findBySymbol(request.getSymbol()).getName()));
+        if (singleAssetResponse == null) {
             throw new BusinessException("No available info for this asset");
         }
         final var wallet = optionalWallet.get();
         final var assetEntity = new AssetEntity(
                 request.getSymbol(),
                 request.getQuantity(),
-                assetInfo.priceUsd(),
+                singleAssetResponse.priceUsd(),
                 wallet
         );
         if (optionalWallet.get().getAssetEntities().isEmpty()) {
@@ -107,9 +108,12 @@ public class WalletServiceImpl implements WalletService {
         final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
 
         try {
-            List<CompletableFuture<AssetInfo>> futures = request.getAssets().stream()
+            List<CompletableFuture<HistoricalAssetResponse>> futures = request.getAssets().stream()
                     .map(asset -> CompletableFuture.supplyAsync(
-                            () -> coinCapService.getHistoricalInfo(AssetEnum.findBySymbol(asset.symbol()).getName(), request.getDate()), executor))
+                            () -> pricingProviderService.getHistoricalInfo(HistoricalRequest.builder()
+                                    .token(AssetEnum.findBySymbol(asset.symbol()).getName())
+                                    .date(request.getDate())
+                                    .build()), executor))
                     .toList();
 
             // Wait for all API calls to complete
@@ -123,9 +127,9 @@ public class WalletServiceImpl implements WalletService {
 
             // Build map of values at requested date to evaluate
             final Map<String, BigDecimal> valuesAtDate = new HashMap<>();
-            for (CompletableFuture<AssetInfo> future : futures) {
+            for (CompletableFuture<HistoricalAssetResponse> future : futures) {
                 try {
-                    AssetInfo info = future.get();
+                    HistoricalAssetResponse info = future.get();
                     BigDecimal priceAtDate = info.priceUsd();
                     BigDecimal quantity = quantities.get(info.symbol());
                     valuesAtDate.put(info.symbol(), priceAtDate.multiply(quantity));
@@ -193,12 +197,12 @@ public class WalletServiceImpl implements WalletService {
 
     private static Map<String, BigDecimal> getCurrentValues(EvaluateRequest request) {
         return request.getAssets().stream()
-                .collect(Collectors.toMap(r->AssetEnum.findBySymbol(r.symbol()).getName(), AssetInfoRequest::value, (a, b) -> b));
+                .collect(Collectors.toMap(r -> AssetEnum.findBySymbol(r.symbol()).getName(), AssetInfoRequest::value, (a, b) -> b));
     }
 
     private static Map<String, BigDecimal> getQuantities(EvaluateRequest request) {
         return request.getAssets().stream()
-                .collect(Collectors.toMap(r->AssetEnum.findBySymbol(r.symbol()).getName(), AssetInfoRequest::quantity, (a, b) -> b));
+                .collect(Collectors.toMap(r -> AssetEnum.findBySymbol(r.symbol()).getName(), AssetInfoRequest::quantity, (a, b) -> b));
     }
 
 

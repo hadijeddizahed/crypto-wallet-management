@@ -11,13 +11,10 @@ import com.swisspost.cryptowalletmanagement.repository.data.AssetSummary;
 import com.swisspost.cryptowalletmanagement.repository.entity.AssetEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.UserEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.WalletEntity;
-import com.swisspost.cryptowalletmanagement.service.dto.AssetInfo;
-import com.swisspost.cryptowalletmanagement.service.dto.EvaluateDto;
-import com.swisspost.cryptowalletmanagement.service.dto.WalletInfoDTO;
-import com.swisspost.cryptowalletmanagement.service.dto.WalletResponseDTO;
+import com.swisspost.cryptowalletmanagement.service.dto.*;
 import com.swisspost.cryptowalletmanagement.service.exceptions.BusinessException;
 import com.swisspost.cryptowalletmanagement.service.exceptions.DuplicateUserException;
-import com.swisspost.cryptowalletmanagement.service.pricing.PricingApiService;
+import com.swisspost.cryptowalletmanagement.service.pricing.PricingProviderService;
 import com.swisspost.cryptowalletmanagement.service.wallet.WalletServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,7 +51,7 @@ class WalletServiceImplTest {
     private AssetRepository assetRepository;
 
     @Mock
-    private PricingApiService coinCapService;
+    private PricingProviderService pricingProviderService;
 
     @InjectMocks
     private WalletServiceImpl walletService;
@@ -63,11 +60,11 @@ class WalletServiceImplTest {
     private UserEntity userEntity;
     private WalletEntity walletEntity;
     private AssetRequest assetRequest;
-    private AssetInfo assetInfo;
+    private SingleAssetResponse singleAssetResponse;
     private AssetSummary assetSummary;
     private EvaluateRequest evaluateRequest;
-    private AssetInfo btcInfo;
-    private AssetInfo ethInfo;
+    private HistoricalAssetResponse historicalAssetResponse1;
+    private HistoricalAssetResponse historicalAssetResponse2;
 
     @BeforeEach
     void setUp() {
@@ -85,8 +82,17 @@ class WalletServiceImplTest {
         assetRequest.setSymbol("BTC");
         assetRequest.setQuantity(BigDecimal.valueOf(1.5));
 
-        assetInfo = AssetInfo.builder()
+        singleAssetResponse = SingleAssetResponse.builder()
                 .priceUsd(BigDecimal.valueOf(50000))
+                .build();
+
+        historicalAssetResponse1 = HistoricalAssetResponse.builder()
+                .priceUsd(new BigDecimal("30000"))
+                .symbol("bitcoin")
+                .build();
+        historicalAssetResponse2 = HistoricalAssetResponse.builder()
+                .symbol("ethereum")
+                .priceUsd(new BigDecimal("1500"))
                 .build();
 
         assetSummary = new AssetSummary() {
@@ -117,15 +123,6 @@ class WalletServiceImplTest {
                 new AssetInfoRequest("BTC", new BigDecimal("1.0"), BigDecimal.valueOf(1000)),
                 new AssetInfoRequest("ETH", new BigDecimal("2.0"), BigDecimal.valueOf(1000))
         ));
-
-        btcInfo = AssetInfo.builder()
-                .symbol("bitcoin")
-                .priceUsd(new BigDecimal("30000"))
-                .build();
-        ethInfo = AssetInfo.builder()
-                .symbol("ethereum")
-                .priceUsd(new BigDecimal("1500"))
-                .build();
     }
 
     @Test
@@ -141,7 +138,7 @@ class WalletServiceImplTest {
         assertNotNull(response);
         verify(userRepository).findByEmail(request.getEmail());
         verify(walletRepository).save(any(WalletEntity.class));
-        verifyNoInteractions(assetRepository, coinCapService);
+        verifyNoInteractions(assetRepository, pricingProviderService);
     }
 
     @Test
@@ -158,7 +155,7 @@ class WalletServiceImplTest {
         assertNotNull(response);
         verify(userRepository).findByEmail(request.getEmail());
         verify(walletRepository).save(any(WalletEntity.class));
-        verifyNoInteractions(assetRepository, coinCapService);
+        verifyNoInteractions(assetRepository, pricingProviderService);
     }
 
     @Test
@@ -170,7 +167,7 @@ class WalletServiceImplTest {
         // Act and Assert
         assertThrows(DuplicateUserException.class, () -> walletService.create(request));
         verify(userRepository).findByEmail(request.getEmail());
-        verifyNoInteractions(walletRepository, assetRepository, coinCapService);
+        verifyNoInteractions(walletRepository, assetRepository, pricingProviderService);
     }
 
     @Test
@@ -181,19 +178,19 @@ class WalletServiceImplTest {
         // Act & Assert
         assertThrows(BusinessException.class, () -> walletService.addAsset(1L, assetRequest));
         verify(walletRepository).findById(1L);
-        verifyNoInteractions(coinCapService, userRepository, assetRepository);
+        verifyNoInteractions(pricingProviderService, userRepository, assetRepository);
     }
 
     @Test
     void shouldThrowsBusinessException_WhenAssetInfoNotFound() {
         // Mock objects
         when(walletRepository.findById(1L)).thenReturn(Optional.of(walletEntity));
-        when(coinCapService.getSingleAssetInfo(anyString())).thenReturn(null);
+        when(pricingProviderService.getSingleAssetInfo(any(SingleAssetRequest.class))).thenReturn(null);
 
         // Act & Assert
         assertThrows(BusinessException.class, () -> walletService.addAsset(1L, assetRequest));
         verify(walletRepository).findById(1L);
-        verify(coinCapService).getSingleAssetInfo(anyString());
+        verify(pricingProviderService).getSingleAssetInfo(any(SingleAssetRequest.class));
         verifyNoInteractions(userRepository, assetRepository);
     }
 
@@ -201,7 +198,7 @@ class WalletServiceImplTest {
     void shouldAddAsset_WhenNewAsset() {
         // Mock objects
         when(walletRepository.findById(1L)).thenReturn(Optional.of(walletEntity));
-        when(coinCapService.getSingleAssetInfo(anyString())).thenReturn(assetInfo);
+        when(pricingProviderService.getSingleAssetInfo(any(SingleAssetRequest.class))).thenReturn(singleAssetResponse);
         when(walletRepository.save(any(WalletEntity.class))).thenReturn(walletEntity);
 
         // call API
@@ -210,7 +207,7 @@ class WalletServiceImplTest {
         // Assert
         assertNotNull(response);
         verify(walletRepository).findById(1L);
-        verify(coinCapService).getSingleAssetInfo(anyString());
+        verify(pricingProviderService).getSingleAssetInfo(any(SingleAssetRequest.class));
         verify(walletRepository).save(any(WalletEntity.class));
         verifyNoInteractions(userRepository, assetRepository);
     }
@@ -221,7 +218,7 @@ class WalletServiceImplTest {
         AssetEntity existingAsset = new AssetEntity("BTC", BigDecimal.valueOf(1.0), BigDecimal.valueOf(40000.0), walletEntity);
         walletEntity.getAssetEntities().add(existingAsset);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(walletEntity));
-        when(coinCapService.getSingleAssetInfo(anyString())).thenReturn(assetInfo);
+        when(pricingProviderService.getSingleAssetInfo(any(SingleAssetRequest.class))).thenReturn(singleAssetResponse);
         when(walletRepository.save(any(WalletEntity.class))).thenReturn(walletEntity);
 
         // call API
@@ -231,7 +228,7 @@ class WalletServiceImplTest {
         assertNotNull(response);
         assertThat(walletEntity.getAssetEntities().get(0).getQuantity().compareTo(BigDecimal.valueOf(1.5))).isZero();
         verify(walletRepository).findById(1L);
-        verify(coinCapService).getSingleAssetInfo(anyString());
+        verify(pricingProviderService).getSingleAssetInfo(any(SingleAssetRequest.class));
         verify(walletRepository).save(any(WalletEntity.class));
         verifyNoInteractions(userRepository, assetRepository);
     }
@@ -242,7 +239,7 @@ class WalletServiceImplTest {
         AssetEntity existingAsset = new AssetEntity("ETH", BigDecimal.valueOf(1.0), BigDecimal.valueOf(2000.0), walletEntity);
         walletEntity.getAssetEntities().add(existingAsset);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(walletEntity));
-        when(coinCapService.getSingleAssetInfo(anyString())).thenReturn(assetInfo);
+        when(pricingProviderService.getSingleAssetInfo(any(SingleAssetRequest.class))).thenReturn(singleAssetResponse);
         when(walletRepository.save(any(WalletEntity.class))).thenReturn(walletEntity);
 
         // call API
@@ -252,7 +249,7 @@ class WalletServiceImplTest {
         assertNotNull(response);
         assertEquals(2, walletEntity.getAssetEntities().size());
         verify(walletRepository).findById(1L);
-        verify(coinCapService).getSingleAssetInfo(anyString());
+        verify(pricingProviderService).getSingleAssetInfo(any(SingleAssetRequest.class));
         verify(walletRepository).save(any(WalletEntity.class));
         verifyNoInteractions(userRepository, assetRepository);
     }
@@ -319,8 +316,14 @@ class WalletServiceImplTest {
     @Test
     void evaluate_validRequest_returnsEvaluateDto() {
         // Mock objects
-        when(coinCapService.getHistoricalInfo(eq("bitcoin"), any(LocalDate.class))).thenReturn(btcInfo);
-        when(coinCapService.getHistoricalInfo(eq("ethereum"), any(LocalDate.class))).thenReturn(ethInfo);
+        when(pricingProviderService.getHistoricalInfo(HistoricalRequest.builder()
+                .date(LocalDate.of(2023, 1, 1))
+                .token("bitcoin")
+                .build())).thenReturn(historicalAssetResponse1);
+        when(pricingProviderService.getHistoricalInfo(HistoricalRequest.builder()
+                .date(LocalDate.of(2023, 1, 1))
+                .token("ethereum")
+                .build())).thenReturn(historicalAssetResponse2);
         // call the Api
         EvaluateDto result = walletService.evaluate(evaluateRequest);
 
@@ -343,17 +346,17 @@ class WalletServiceImplTest {
         assertEquals(BigDecimal.ZERO, result.total());
         assertNull(result.bestAsset());
         assertNull(result.worstAsset());
-        verifyNoInteractions(coinCapService);
+        verifyNoInteractions(pricingProviderService);
     }
 
     @Test
     void evaluate_apiCallFails_throwsBusinessException() {
         // Mock objects
-        when(coinCapService.getHistoricalInfo(eq("bitcoin"), any(LocalDate.class)))
+        when(pricingProviderService.getHistoricalInfo(any(HistoricalRequest.class)))
                 .thenThrow(new RuntimeException("API error"));
 
         // Assert
         assertThrows(CompletionException.class, () -> walletService.evaluate(evaluateRequest));
-        verify(coinCapService, times(2)).getHistoricalInfo(anyString(), any(LocalDate.class));
+        verify(pricingProviderService, times(2)).getHistoricalInfo(any(HistoricalRequest.class));
     }
 }

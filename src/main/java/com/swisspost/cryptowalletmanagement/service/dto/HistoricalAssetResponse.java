@@ -5,10 +5,8 @@ import lombok.Builder;
 import java.math.BigDecimal;
 
 @Builder
-public record AssetInfo(
-        String id,
-        String name,
-        String symbol,
-        BigDecimal priceUsd
+public record HistoricalAssetResponse(
+        BigDecimal priceUsd,
+        String symbol
 ) {
 }
