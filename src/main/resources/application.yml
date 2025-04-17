@@ -6,6 +6,9 @@ spring:
   batch:
     jdbc:
       initialize-schema: never
+  jpa:
+    hibernate:
+      ddl-auto: none
 
 app:
   pricing:

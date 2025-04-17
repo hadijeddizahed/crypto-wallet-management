@@ -12,13 +12,13 @@ import java.math.BigDecimal;
 @Data
 public class AssetEntity extends BaseEntity{
 
-    @Column(name = "symbol")
+    @Column(name = "symbol", nullable = false)
     private String symbol;
 
-    @Column(name = "quantity")
+    @Column(name = "quantity", nullable = false)
     private BigDecimal quantity;
 
-    @Column(name = "price")
+    @Column(name = "price", nullable = false)
     private BigDecimal price;
 
     @ManyToOne
