@@ -15,5 +15,6 @@ BEGIN
 
     INSERT INTO assets (symbol, price, quantity, wallet_id)
     VALUES ('BTC', 65000.50, 0.025, wallet_id);
+    INSERT INTO assets (symbol, price, quantity, wallet_id)
     VALUES ('ETH', 65000.50, 0.25, wallet_id);
 END $$;
