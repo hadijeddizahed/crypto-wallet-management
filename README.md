@@ -8,8 +8,8 @@ of each person owns, and how much it costs right now._
 ## Technologies Used
 
 1. Java: Version 17
-2. Spring Boot: Framework for building the application
-3. Spring Batch: For batch processing
+2. Spring Boot 3.3.2: Framework for building the application
+3. Spring Batch 3.3.2: For batch processing
 4. PostgreSQL: Database for persistent storage
 5. Flyway: Database migration tool
 6. Maven: Dependency management and build tool
@@ -26,16 +26,16 @@ PostgreSQL (if running locally without Docker)
 ## Getting Started
 Clone the Repository
 git clone https://github.com/hadijeddizahed/crypto-wallet-management.git
-cd crypto-wallet-management
+`cd crypto-wallet-management`
 
 ## Build the Project
 To compile and package the application:
-mvn clean install
+`mvn clean install`
 
 ## Run the Application Locally
 
 Ensure PostgreSQL is running and configured (or use Docker, see below).
-Update the application.properties file in src/main/resources with your database credentials.
+Update the application.yml file in src/main/resources with your database credentials.
 Run the application:
 
 `mvn spring-boot:run`
@@ -43,11 +43,11 @@ Run the application:
 ## Database Migrations
 Flyway automatically applies database migrations on application startup. Ensure your database is accessible and the credentials are correctly configured.
 Run with Docker Compose
-To spin up the application and PostgreSQL database using Docker Compose:
+To spin up the PostgreSQL database using Docker Compose:
 
 `docker-compose up -d`
 
-This command starts the database in detached mode. The Docker Compose configuration includes:
+The Docker Compose configuration includes:
 PostgreSQL container
 
 ## Testing
