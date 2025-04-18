@@ -4,10 +4,12 @@ import com.swisspost.cryptowalletmanagement.api.dto.AssetInfoRequest;
 import com.swisspost.cryptowalletmanagement.api.dto.AssetRequest;
 import com.swisspost.cryptowalletmanagement.api.dto.CreateWalletRequest;
 import com.swisspost.cryptowalletmanagement.api.dto.EvaluateRequest;
+import com.swisspost.cryptowalletmanagement.repository.AssetDetailRepository;
 import com.swisspost.cryptowalletmanagement.repository.AssetRepository;
 import com.swisspost.cryptowalletmanagement.repository.UserRepository;
 import com.swisspost.cryptowalletmanagement.repository.WalletRepository;
 import com.swisspost.cryptowalletmanagement.repository.data.AssetSummary;
+import com.swisspost.cryptowalletmanagement.repository.entity.AssetDetailEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.AssetEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.UserEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.WalletEntity;
@@ -36,7 +38,7 @@ public class WalletServiceImpl implements WalletService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final AssetRepository assetRepository;
-
+    private final AssetDetailRepository assetDetailRepository;
     private final PricingProviderService pricingProviderService;
 
     public WalletResponseDTO create(final CreateWalletRequest request) {
@@ -78,11 +80,21 @@ public class WalletServiceImpl implements WalletService {
         if (singleAssetResponse == null) {
             throw new BusinessException("No available info for this asset");
         }
+        final var assetDetail = assetDetailRepository.findBySymbol(request.getSymbol());
+        AssetDetailEntity assetDetailEntity = null;
+        if (assetDetail.isEmpty()){
+            assetDetailEntity = new AssetDetailEntity();
+            assetDetailEntity.setSymbol(singleAssetResponse.symbol());
+            assetDetailEntity.setName(singleAssetResponse.name());
+            assetDetailEntity.setPrice(singleAssetResponse.priceUsd());
+            assetDetailRepository.save(assetDetailEntity);
+        }else {
+            assetDetailEntity = assetDetail.get();
+        }
         final var wallet = optionalWallet.get();
         final var assetEntity = new AssetEntity(
-                request.getSymbol(),
                 request.getQuantity(),
-                singleAssetResponse.priceUsd(),
+                assetDetailEntity,
                 wallet
         );
         if (optionalWallet.get().getAssetEntities().isEmpty()) {
@@ -90,7 +102,7 @@ public class WalletServiceImpl implements WalletService {
         } else {
             boolean found = false;
             for (AssetEntity assetEntity1 : wallet.getAssetEntities()) {
-                if (assetEntity1.getSymbol().equals(request.getSymbol())) {
+                if (assetEntity1.getAssetDetail().getSymbol().equals(request.getSymbol())) {
                     assetEntity1.setQuantity(request.getQuantity());
                     found = true;
                 }

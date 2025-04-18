@@ -4,10 +4,12 @@ import com.swisspost.cryptowalletmanagement.api.dto.AssetInfoRequest;
 import com.swisspost.cryptowalletmanagement.api.dto.AssetRequest;
 import com.swisspost.cryptowalletmanagement.api.dto.CreateWalletRequest;
 import com.swisspost.cryptowalletmanagement.api.dto.EvaluateRequest;
+import com.swisspost.cryptowalletmanagement.repository.AssetDetailRepository;
 import com.swisspost.cryptowalletmanagement.repository.AssetRepository;
 import com.swisspost.cryptowalletmanagement.repository.UserRepository;
 import com.swisspost.cryptowalletmanagement.repository.WalletRepository;
 import com.swisspost.cryptowalletmanagement.repository.data.AssetSummary;
+import com.swisspost.cryptowalletmanagement.repository.entity.AssetDetailEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.AssetEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.UserEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.WalletEntity;
@@ -51,6 +53,9 @@ class WalletServiceImplTest {
     private AssetRepository assetRepository;
 
     @Mock
+    private AssetDetailRepository assetDetailRepository;
+
+    @Mock
     private PricingProviderService pricingProviderService;
 
     @InjectMocks
@@ -59,6 +64,8 @@ class WalletServiceImplTest {
     private CreateWalletRequest request;
     private UserEntity userEntity;
     private WalletEntity walletEntity;
+    private AssetDetailEntity assetDetailEntity1;
+    private AssetDetailEntity assetDetailEntity2;
     private AssetRequest assetRequest;
     private SingleAssetResponse singleAssetResponse;
     private AssetSummary assetSummary;
@@ -77,6 +84,16 @@ class WalletServiceImplTest {
         walletEntity = new WalletEntity();
         walletEntity.setId(1l);
         walletEntity.setUser(userEntity);
+
+        assetDetailEntity1 = new AssetDetailEntity();
+        assetDetailEntity1.setSymbol("BTC");
+        assetDetailEntity1.setName("bitcoin");
+        assetDetailEntity1.setPrice(BigDecimal.valueOf(40000.0));
+
+        assetDetailEntity2 = new AssetDetailEntity();
+        assetDetailEntity2.setSymbol("ETH");
+        assetDetailEntity2.setName("ethereum");
+        assetDetailEntity2.setPrice(BigDecimal.valueOf(2000.0));
 
         assetRequest = new AssetRequest();
         assetRequest.setSymbol("BTC");
@@ -215,7 +232,7 @@ class WalletServiceImplTest {
     @Test
     void shouldUpdatesQuantity_When_existingAsset() {
         // Mock objects
-        AssetEntity existingAsset = new AssetEntity("BTC", BigDecimal.valueOf(1.0), BigDecimal.valueOf(40000.0), walletEntity);
+        AssetEntity existingAsset = new AssetEntity( BigDecimal.valueOf(1.0), assetDetailEntity1, walletEntity);
         walletEntity.getAssetEntities().add(existingAsset);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(walletEntity));
         when(pricingProviderService.getSingleAssetInfo(any(SingleAssetRequest.class))).thenReturn(singleAssetResponse);
@@ -236,7 +253,7 @@ class WalletServiceImplTest {
     @Test
     void shouldAddsToExistingList_whenAssetIsNew() {
         // Mock objects
-        AssetEntity existingAsset = new AssetEntity("ETH", BigDecimal.valueOf(1.0), BigDecimal.valueOf(2000.0), walletEntity);
+        AssetEntity existingAsset = new AssetEntity(BigDecimal.valueOf(1.0), assetDetailEntity2, walletEntity);
         walletEntity.getAssetEntities().add(existingAsset);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(walletEntity));
         when(pricingProviderService.getSingleAssetInfo(any(SingleAssetRequest.class))).thenReturn(singleAssetResponse);

@@ -12,29 +12,24 @@ import java.math.BigDecimal;
 @Data
 public class AssetEntity extends BaseEntity{
 
-    @Column(name = "symbol", nullable = false)
-    private String symbol;
-
     @Column(name = "quantity", nullable = false)
     private BigDecimal quantity;
 
-    @Column(name = "price", nullable = false)
-    private BigDecimal price;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "asset_detail_id", nullable = false)
+    private AssetDetailEntity assetDetail;
 
     @ManyToOne
     @JoinColumn(name = "wallet_id", nullable = false)
     private WalletEntity wallet;
 
-    public String getSymbol() {
-        return symbol;
-    }
-
     public BigDecimal getQuantity() {
         return quantity;
     }
 
-    public BigDecimal getPrice() {
-        return price;
+    public AssetDetailEntity getAssetDetail() {
+        return assetDetail;
     }
 
     public WalletEntity getWallet() {

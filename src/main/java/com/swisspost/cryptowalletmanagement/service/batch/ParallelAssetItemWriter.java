@@ -1,5 +1,6 @@
 package com.swisspost.cryptowalletmanagement.service.batch;
 
+import com.swisspost.cryptowalletmanagement.repository.entity.AssetDetailEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.AssetEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
@@ -12,9 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-public class ParallelAssetItemWriter implements ItemWriter<AssetEntity> {
+public class ParallelAssetItemWriter implements ItemWriter<AssetDetailEntity> {
 
-    private final JpaItemWriter<AssetEntity> jpaItemWriter;
+    private final JpaItemWriter<AssetDetailEntity> jpaItemWriter;
     private final ParallelBatchProcessor batchProcessor;
 
     public ParallelAssetItemWriter(EntityManagerFactory entityManagerFactory, ParallelBatchProcessor batchProcessor) {
@@ -25,15 +26,15 @@ public class ParallelAssetItemWriter implements ItemWriter<AssetEntity> {
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public void write(Chunk<? extends AssetEntity> chunk) throws Exception {
+    public void write(Chunk<? extends AssetDetailEntity> chunk) throws Exception {
         // Process chunk in parallel
-        CompletableFuture<AssetEntity>[] futures = batchProcessor.processChunk(chunk);
+        CompletableFuture<AssetDetailEntity>[] futures = batchProcessor.processChunk(chunk);
         // Wait for all API calls to complete
         CompletableFuture.allOf(futures).join();
         // Collect processed items
-        Chunk<AssetEntity> processedChunk = new Chunk<>();
-        for (CompletableFuture<AssetEntity> future : futures) {
-            AssetEntity assetEntity = future.get();
+        Chunk<AssetDetailEntity> processedChunk = new Chunk<>();
+        for (CompletableFuture<AssetDetailEntity> future : futures) {
+            AssetDetailEntity assetEntity = future.get();
             processedChunk.add(assetEntity);
         }
         // Write to database

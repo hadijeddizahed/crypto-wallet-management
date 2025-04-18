@@ -1,5 +1,6 @@
 package com.swisspost.cryptowalletmanagement.service.mapper;
 
+import com.swisspost.cryptowalletmanagement.repository.entity.AssetDetailEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.AssetEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.UserEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.WalletEntity;
@@ -30,10 +31,13 @@ class WalletMapperTest {
         UserEntity user = new UserEntity();
         user.setEmail("test@gmail.com");
 
+        AssetDetailEntity assetDetailEntity = new AssetDetailEntity();
+        assetDetailEntity.setSymbol("BTC");
+        assetDetailEntity.setPrice(new BigDecimal("40000"));
         AssetEntity asset = new AssetEntity();
-        asset.setSymbol("BTC");
+        asset.setAssetDetail(assetDetailEntity);
         asset.setQuantity(new BigDecimal("2.5"));
-        asset.setPrice(new BigDecimal("40000"));
+
 
         WalletEntity wallet = new WalletEntity();
         wallet.setId(1L);
@@ -54,10 +58,14 @@ class WalletMapperTest {
 
     @Test
     void shouldMapsToAssetDto() {
+
+        AssetDetailEntity assetDetailEntity = new AssetDetailEntity();
+        assetDetailEntity.setSymbol("ETH");
+        assetDetailEntity.setPrice(new BigDecimal("3000"));
         AssetEntity asset = new AssetEntity();
-        asset.setSymbol("ETH");
+
         asset.setQuantity(new BigDecimal("10"));
-        asset.setPrice(new BigDecimal("3000"));
+        asset.setAssetDetail(assetDetailEntity);
 
         AssetDto result = walletMapper.toDto(asset);
 
@@ -70,15 +78,21 @@ class WalletMapperTest {
 
     @Test
     void shouldMapsToAssetDtoList() {
+        AssetDetailEntity assetDetailEntity1 = new AssetDetailEntity();
+        assetDetailEntity1.setSymbol("BTC");
+        assetDetailEntity1.setPrice(new BigDecimal("40000"));
+
         AssetEntity asset1 = new AssetEntity();
-        asset1.setSymbol("BTC");
         asset1.setQuantity(new BigDecimal("2"));
-        asset1.setPrice(new BigDecimal("40000"));
+        asset1.setAssetDetail(assetDetailEntity1);
+
+        AssetDetailEntity assetDetailEntity2 = new AssetDetailEntity();
+        assetDetailEntity2.setSymbol("ETH");
+        assetDetailEntity2.setPrice(new BigDecimal("3000"));
 
         AssetEntity asset2 = new AssetEntity();
-        asset2.setSymbol("ETH");
         asset2.setQuantity(new BigDecimal("5"));
-        asset2.setPrice(new BigDecimal("3000"));
+        asset2.setAssetDetail(assetDetailEntity2);
 
         List<AssetEntity> assets = List.of(asset1, asset2);
 
@@ -96,11 +110,10 @@ class WalletMapperTest {
     void shouldReturnsZero_whenNullQuantityOrPrice() {
         AssetEntity asset1 = new AssetEntity();
         asset1.setQuantity(null);
-        asset1.setPrice(new BigDecimal("1000"));
+
 
         AssetEntity asset2 = new AssetEntity();
         asset2.setQuantity(new BigDecimal("2"));
-        asset2.setPrice(null);
 
         BigDecimal result1 = walletMapper.calculateValue(asset1);
         BigDecimal result2 = walletMapper.calculateValue(asset2);

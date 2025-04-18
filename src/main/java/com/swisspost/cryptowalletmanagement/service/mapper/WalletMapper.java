@@ -23,15 +23,17 @@ public interface WalletMapper {
     WalletResponseDTO toDto(WalletEntity wallet);
 
     @Mapping(target = "value", source = "assetEntity", qualifiedByName = "calculateValue")
+    @Mapping(target = "symbol", source = "assetEntity.assetDetail.symbol")
+    @Mapping(target = "price", source = "assetEntity.assetDetail.price")
     AssetDto toDto(AssetEntity assetEntity);
 
     List<AssetDto> toDtoList(List<AssetEntity> assetEntities);
 
     @Named("calculateValue")
     default BigDecimal calculateValue(AssetEntity assetEntity) {
-        if (assetEntity.getQuantity() == null || assetEntity.getPrice() == null) {
+        if (assetEntity.getQuantity() == null || assetEntity.getAssetDetail().getPrice() == null) {
             return BigDecimal.ZERO;
         }
-        return assetEntity.getQuantity().multiply(assetEntity.getPrice());
+        return assetEntity.getQuantity().multiply(assetEntity.getAssetDetail().getPrice());
     }
 }

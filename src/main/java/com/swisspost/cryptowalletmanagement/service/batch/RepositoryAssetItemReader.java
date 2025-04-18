@@ -1,7 +1,7 @@
 package com.swisspost.cryptowalletmanagement.service.batch;
 
-import com.swisspost.cryptowalletmanagement.repository.AssetRepository;
-import com.swisspost.cryptowalletmanagement.repository.entity.AssetEntity;
+import com.swisspost.cryptowalletmanagement.repository.AssetDetailRepository;
+import com.swisspost.cryptowalletmanagement.repository.entity.AssetDetailEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,16 +17,16 @@ import java.util.Iterator;
 @Component
 @Scope(value = "step", proxyMode = ScopedProxyMode.TARGET_CLASS)
 @Slf4j
-public class RepositoryAssetItemReader extends AbstractItemCountingItemStreamItemReader<AssetEntity> {
+public class RepositoryAssetItemReader extends AbstractItemCountingItemStreamItemReader<AssetDetailEntity> {
 
-    private final AssetRepository repository;
-    private Iterator<AssetEntity> assetIterator;
+    private final AssetDetailRepository repository;
+    private Iterator<AssetDetailEntity> assetIterator;
     private int page = 0;
     private final int pageSize;
 
 
     @Autowired
-    public RepositoryAssetItemReader(AssetRepository repository) {
+    public RepositoryAssetItemReader(AssetDetailRepository repository) {
         this.repository = repository;
         this.pageSize = 100;
         setName("assetReader");
@@ -34,13 +34,13 @@ public class RepositoryAssetItemReader extends AbstractItemCountingItemStreamIte
 
     private void readNextPage() {
         Pageable pageable = PageRequest.of(page, pageSize);
-        Page<AssetEntity> assetPage = repository.findAll(pageable);
+        Page<AssetDetailEntity> assetPage = repository.findAll(pageable);
         assetIterator = assetPage.getContent().iterator();
         page++;
     }
 
     @Override
-    protected AssetEntity doRead() {
+    protected AssetDetailEntity doRead() {
         if (assetIterator == null || !assetIterator.hasNext()) {
             readNextPage();
         }

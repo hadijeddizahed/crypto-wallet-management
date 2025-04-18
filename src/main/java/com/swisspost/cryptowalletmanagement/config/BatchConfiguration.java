@@ -1,6 +1,8 @@
 package com.swisspost.cryptowalletmanagement.config;
 
+import com.swisspost.cryptowalletmanagement.repository.AssetDetailRepository;
 import com.swisspost.cryptowalletmanagement.repository.AssetRepository;
+import com.swisspost.cryptowalletmanagement.repository.entity.AssetDetailEntity;
 import com.swisspost.cryptowalletmanagement.repository.entity.AssetEntity;
 import com.swisspost.cryptowalletmanagement.service.batch.ParallelAssetItemWriter;
 import com.swisspost.cryptowalletmanagement.service.batch.ParallelBatchProcessor;
@@ -23,17 +25,17 @@ import jakarta.persistence.EntityManagerFactory;
 @Configuration
 public class BatchConfiguration {
 
-    private final AssetRepository assetRepository;
+    private final AssetDetailRepository assetRepository;
     private final PricingProviderService pricingProviderService;
 
-    public BatchConfiguration(AssetRepository assetRepository,
+    public BatchConfiguration(AssetDetailRepository repository,
                               PricingProviderService pricingProviderService) {
-        this.assetRepository = assetRepository;
+        this.assetRepository = repository;
         this.pricingProviderService = pricingProviderService;
     }
 
     @Bean
-    public ItemReader<AssetEntity> reader() {
+    public ItemReader<AssetDetailEntity> reader() {
         return new RepositoryAssetItemReader(assetRepository); // Page size 100
     }
 
@@ -43,7 +45,7 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public ItemWriter<AssetEntity> writer(EntityManagerFactory entityManagerFactory, ParallelBatchProcessor processor) {
+    public ItemWriter<AssetDetailEntity> writer(EntityManagerFactory entityManagerFactory, ParallelBatchProcessor processor) {
         return new ParallelAssetItemWriter(entityManagerFactory, processor);
     }
 
@@ -57,7 +59,7 @@ public class BatchConfiguration {
     @Bean
     public Step createStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("assetsProcessingJob", jobRepository)
-                .<AssetEntity, AssetEntity>chunk(3, transactionManager)
+                .<AssetDetailEntity, AssetDetailEntity>chunk(3, transactionManager)
                 .allowStartIfComplete(true)
                 .reader(reader())
                 .processor(processor())

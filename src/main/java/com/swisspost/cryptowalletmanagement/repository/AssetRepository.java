@@ -14,12 +14,18 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long> {
 
     @Query(
             value = """
-                    SELECT 
-                        a.symbol AS symbol,
-                        a.price AS price,
+                    SELECT
+                        ad.symbol AS symbol,
+                        ad.price AS price,
                         a.quantity AS quantity,
-                        (SELECT SUM(price * quantity) FROM assets WHERE wallet_id = a.wallet_id) AS total_value
+                        (
+                            SELECT SUM(ad2.price * a2.quantity)
+                            FROM assets a2
+                            JOIN asset_details ad2 ON a2.asset_detail_id = ad2.id
+                            WHERE a2.wallet_id = a.wallet_id
+                        ) AS total_value
                     FROM assets a
+                    JOIN asset_details ad ON a.asset_detail_id = ad.id
                     WHERE a.wallet_id = :walletId
                     """,
             countQuery = """
