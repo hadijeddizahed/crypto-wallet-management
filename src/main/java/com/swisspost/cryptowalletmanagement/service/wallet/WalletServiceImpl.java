@@ -80,17 +80,8 @@ public class WalletServiceImpl implements WalletService {
         if (singleAssetResponse == null) {
             throw new BusinessException("No available info for this asset");
         }
-        final var assetDetail = assetDetailRepository.findBySymbol(request.getSymbol());
-        AssetDetailEntity assetDetailEntity = null;
-        if (assetDetail.isEmpty()){
-            assetDetailEntity = new AssetDetailEntity();
-            assetDetailEntity.setSymbol(singleAssetResponse.symbol());
-            assetDetailEntity.setName(singleAssetResponse.name());
-            assetDetailEntity.setPrice(singleAssetResponse.priceUsd());
-            assetDetailRepository.save(assetDetailEntity);
-        }else {
-            assetDetailEntity = assetDetail.get();
-        }
+        AssetDetailEntity assetDetailEntity = this.saveOrUpdate(request, singleAssetResponse);
+
         final var wallet = optionalWallet.get();
         final var assetEntity = new AssetEntity(
                 request.getQuantity(),
@@ -112,6 +103,21 @@ public class WalletServiceImpl implements WalletService {
             }
         }
         return WalletMapper.INSTANCE.toDto(walletRepository.save(wallet));
+    }
+
+    private AssetDetailEntity saveOrUpdate(AssetRequest request, SingleAssetResponse singleAssetResponse) {
+        final var assetDetail = assetDetailRepository.findBySymbol(request.getSymbol());
+        AssetDetailEntity assetDetailEntity = null;
+        if (assetDetail.isEmpty()) {
+            assetDetailEntity = new AssetDetailEntity();
+            assetDetailEntity.setSymbol(singleAssetResponse.symbol());
+            assetDetailEntity.setName(singleAssetResponse.name());
+            assetDetailEntity.setPrice(singleAssetResponse.priceUsd());
+        } else {
+            assetDetailEntity = assetDetail.get();
+            assetDetailEntity.setPrice(singleAssetResponse.priceUsd());
+        }
+        return assetDetailEntity;
     }
 
     @Override
